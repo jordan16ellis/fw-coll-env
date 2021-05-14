@@ -1,0 +1,7 @@
+
+.mypy_cache
+build
+fw_coll_env.egg-info
+fw_coll_env_c.cpython*.so
+tags
+*.pyc
