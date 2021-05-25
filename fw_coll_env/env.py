@@ -4,7 +4,29 @@ import numpy as np
 import gym
 import fw_coll_env_c
 
-from .viewer import Viewer
+# from .viewer import Viewer
+
+class PotentialFunction:
+    def __init__(self) -> None:
+        self.prev = np.nan
+
+    def reset(self) -> None:
+        self.prev = np.nan
+
+    def __call__(self, val: float) -> float:
+        if np.isnan(self.prev):
+            # start at 0
+            self.prev = val
+        out = val - self.prev
+        self.prev = val
+        return out
+
+    def __repr__(self) -> str:
+        return f"PotentialFunction(prev={self.prev})"
+
+def interp(x, low_domain, high_domain, low_range, high_range):
+    pct = (x - low_domain) / (high_domain - low_domain)
+    return low_range + pct * (high_range - low_range)
 
 
 class FwCollisionGymEnv(gym.Env):
@@ -31,15 +53,18 @@ class FwCollisionGymEnv(gym.Env):
             [len(avail_actions.v), len(avail_actions.w_deg_per_sec),
              len(avail_actions.dz)])
 
-        n = 11
+        # n = 11
+        n = 16
         self.observation_space = gym.spaces.Box(-np.inf, np.inf, (n,))
+
+        self.prev_dist_to_goal1 = np.inf
 
     def step(self, action: np.ndarray) \
             -> Tuple[np.ndarray, float, bool, dict]:
 
         v = self.avail_actions.v[action[0]]
         w = self.avail_actions.w_rad_per_sec[action[1]]
-        dz = self.avail_actions.dz[action[1]]
+        dz = self.avail_actions.dz[action[2]]
 
         ac1 = fw_coll_env_c.FwSingleAction(v, w, dz)
         ac2 = self.uhat.calc(self.state.x2)
@@ -47,10 +72,25 @@ class FwCollisionGymEnv(gym.Env):
         self.env.step(ac1, ac2)
 
         obs = self._get_obs()
-        reward = float(
-            self.env.stats.dist_to_goal1 < self.env.stats.dist_to_goal1)
 
-        return obs, reward, self.env.done, {}
+        # penalty for collisions
+        coll_penalty_scale = 0
+        coll_penalty = coll_penalty_scale if self.env.stats.done_collision else 0
+
+        # reward = float(
+        #     self.env.stats.dist_to_goal1 < self.prev_dist_to_goal1) + coll_penalty
+        # self.prev_dist_to_goal1 = self.env.stats.dist_to_goal1
+
+        goal1_met = self.env.stats.dist_to_goal1 < self.env.done_dist
+        reward = float(goal1_met) + coll_penalty
+
+        info = {
+            'had_collision': 1 if self.env.stats.done_collision else 0,
+            'goal_met': float(goal1_met)
+        }
+
+        done = self.env.stats.done_time or goal1_met
+        return obs, reward, self.env.done, info
 
     def _get_obs(self) -> np.ndarray:
         self.state = fw_coll_env_c.FwState(self.env.x1, self.env.x2)
@@ -92,6 +132,8 @@ class FwCollisionGymEnv(gym.Env):
 
         self.env.reset(fw_coll_env_c.FwSingleState.from_numpy(veh1_pose),
                        fw_coll_env_c.FwSingleState.from_numpy(veh2_pose), 0.0)
+
+        self.prev_dist_to_goal1 = np.inf
 
         return self._get_obs()
 

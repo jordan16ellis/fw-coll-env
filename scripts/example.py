@@ -22,7 +22,11 @@ def main():
     while True:
         ac = np.array([0, 0, 0])
         obs, rew, done, info = env.step(ac)
-        env.render()
+        # import pdb;pdb.set_trace()
+        # env.render()
+        print(env.env.stats.done_collision)
+        # print(rew)
+        print(info)
 
         if done:
             env.reset()
