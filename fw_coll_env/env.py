@@ -4,7 +4,7 @@ import numpy as np
 import gym
 import fw_coll_env_c
 
-# from .viewer import Viewer
+from .viewer import Viewer
 
 class PotentialFunction:
     def __init__(self) -> None:
@@ -90,6 +90,8 @@ class FwCollisionGymEnv(gym.Env):
         }
 
         done = self.env.stats.done_time or goal1_met
+        self.goal1_met = goal1_met
+        self.done = done
         return obs, reward, self.env.done, info
 
     def _get_obs(self) -> np.ndarray:

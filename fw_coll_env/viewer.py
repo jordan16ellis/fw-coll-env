@@ -6,11 +6,11 @@ import numpy as np
 import pyglet
 from gym.envs.classic_control import rendering
 
-import mfcbf_c
+import fw_coll_env_c
 
 
 class Viewer:
-    def __init__(self, env: mfcbf_c.FwCollisionEnv):
+    def __init__(self, env: fw_coll_env_c.FwCollisionEnv):
         self.viewer = rendering.Viewer(1000, 1000)
         bound = 1.25
         # bound = 0.5
@@ -46,7 +46,7 @@ class Viewer:
         self.collision_circle2_xform = rendering.Transform()
         self.collision_circle2.add_attr(self.collision_circle2_xform)
 
-    def render(self, env: mfcbf_c.FwCollisionEnv) -> bool:
+    def render(self, env: fw_coll_env_c.FwCollisionEnv) -> bool:
         self.viewer.add_onetime(self.uav1)
         self.uav1_xform.set_translation(
             *self._scale_pos(np.asarray(env.x1.p)[:2]))
